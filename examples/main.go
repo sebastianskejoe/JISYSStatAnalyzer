@@ -30,7 +30,8 @@ func main() {
 
     // Open file for reading
     if len(args) < 1 {
-        fmt.Printf("Usage: %s <path>\n", os.Args[0])
+        fmt.Printf("Usage: %s [flags] <path>\n", os.Args[0])
+        flag.PrintDefaults()
         os.Exit(0)
     }
 
@@ -104,8 +105,9 @@ func main() {
         fmt.Fprintln(output,"Stats for",key)
         fmt.Fprintln(output,"========")
         fmt.Fprintln(output, strings.Replace(*format, ",", sep, -1))
-        for _, gs := range stats.Teams[key] {
-//            fmt.Fprintf(output, "%8s%s%5d%s%5d%s%9d\n", gs.Opponent, sep, len(gs.Shots), sep, gs.Goals, sep, gs.Turnovers)
+
+        s := sortTeamStats(stats.Teams[key])
+        for _, gs := range s {
             for _,p := range parts {
                 fmt.Fprintf(output, "%s%s", solveExpr(p, gs), sep)
             }
@@ -117,6 +119,26 @@ func main() {
             output.Close()
         }
     }
+}
+
+func sortTeamStats(stats []*JSA.GameStats) []*JSA.GameStats {
+    ret := make([]*JSA.GameStats, len(stats))
+    ret[0] = stats[0]
+outer:
+    for i := 1 ; i < len(stats) ; i++ {
+        for j := 0 ; j < len(ret) ; j++ {
+            if ret[j] != nil && stats[i].Opponent < ret[j].Opponent {
+                copy(ret[j+1:], ret[j:])
+                ret[j] = stats[i]
+                continue outer
+            } else if ret[j] == nil {
+                ret[j] = stats[i]
+                continue outer
+            }
+        }
+    }
+
+    return ret
 }
 
 func solveExpr(expr string, stats *JSA.GameStats) string {
